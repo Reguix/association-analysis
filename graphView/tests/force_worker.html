@@ -1,0 +1,92 @@
+<html>
+    <head>
+        <script type="text/javascript" src="../thirdparty/require.js"></script>
+        <script type="text/javascript" src="../thirdparty/stats.js"></script>
+    </head>
+    <body style="margin:0px;">
+        <canvas id="main"></canvas>
+        <script type="text/javascript">
+            require(['../lib/ForceAtlas2'], function(ForceAtlas2) {
+
+                var canvas = document.getElementById('main');
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                var ctx = canvas.getContext('2d');
+
+                var forceAtlas2 = new ForceAtlas2();
+                // forceAtlas2.barnesHutOptimize = false;
+                forceAtlas2.barnesHutTheta = 1.2;
+                forceAtlas2.autoSettings = false;
+                forceAtlas2.gravity = 0.0;
+
+                var nNodes = 5000;
+                var nodes = [];
+
+                for (var i = 0; i < nNodes; i++) {
+                    var position = new Float32Array(2);
+                    position[0] = window.innerWidth * Math.random();
+                    position[1] = window.innerHeight * Math.random();
+                    var node = new ForceAtlas2.Node("", position);
+                    nodes.push(node);
+
+                    forceAtlas2.addNode(node);
+                }
+
+                var nEdges = 10000;
+                for (var i = 0; i < nEdges; i++) {
+                    var sIdx = Math.round(Math.random() * (nNodes - 1));
+                    var tIdx = sIdx;
+                    while (tIdx == sIdx) {
+                        tIdx = Math.round(Math.random() * (nNodes - 1));
+                    }
+
+                    var edge = new ForceAtlas2.Edge(nodes[sIdx], nodes[tIdx]);
+                    forceAtlas2.addEdge(edge);
+                }
+
+                forceAtlas2.init();
+
+
+                var stats = new Stats();
+                stats.domElement.style.position = 'absolute';
+                stats.domElement.style.left = '20px';
+                stats.domElement.style.top = '20px';
+                stats.setMode(1);
+                document.body.appendChild(stats.domElement);
+
+                stats.begin();
+                forceAtlas2.onupdate = function() {
+                    stats.end();
+                    
+                    forceAtlas2.update(5);
+                    drawDebug();
+
+                    stats.begin();
+                };
+
+                forceAtlas2.update(5);
+
+                // Debug
+                function drawDebug() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    for (var i = 0; i < nNodes; i++) {
+                        var pos = forceAtlas2.nodes[i].position;
+
+                        ctx.beginPath();
+                        ctx.arc(pos[0], pos[1], 2, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                    ctx.beginPath();
+                    for (var i = 0; i < nEdges; i++) {
+                        var edge = forceAtlas2.edges[i];
+
+                        ctx.moveTo(edge.source.position[0], edge.source.position[1])
+                        ctx.lineTo(edge.target.position[0], edge.target.position[1]);
+                    }
+                    ctx.stroke();
+                }
+            });
+        </script>
+    </body>
+</html>

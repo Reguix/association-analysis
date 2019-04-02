@@ -1,0 +1,92 @@
+<html>
+    <head>
+        <script type="text/javascript" src="../lib/forceAtlas2_worker.js"></script>
+    </head>
+    <body style="margin:0px;">
+        <canvas id="main"></canvas>
+        <script type="text/javascript">
+            
+            var canvas = document.getElementById('main');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            var ctx = canvas.getContext('2d');
+
+            window.self = window;
+
+            var forceAtlas2 = new ForceAtlas2();
+            // forceAtlas2.barnesHutOptimize = false;
+            forceAtlas2.autoSettings = false;
+            forceAtlas2.gravity = 0.0;
+            forceAtlas2.barnesHutTheta = 1.2;
+            var nNodes = 20000;
+
+            var positionArr = new Float32Array(nNodes * 2);
+            var massArr = new Float32Array(nNodes);
+            for (var i = 0; i < nNodes; i++) {
+                positionArr[i * 2] = window.innerWidth * Math.random();
+                positionArr[i * 2 + 1] = window.innerHeight * Math.random(); 
+
+                massArr[i] = 1;
+            }
+
+            var nEdges = 40000;
+            var edgeArr = new Uint32Array(nEdges * 2);
+            for (var i = 0; i < nEdges; i++) {
+                var sIdx = Math.round(Math.random() * (nNodes - 1));
+                var tIdx = sIdx;
+                while (tIdx == sIdx) {
+                    tIdx = Math.round(Math.random() * (nNodes - 1));
+                }
+                edgeArr[i * 2] = sIdx;
+                edgeArr[i * 2 + 1] = tIdx;
+
+            }
+
+            forceAtlas2.initNodes(positionArr, massArr);
+            forceAtlas2.initEdges(edgeArr);
+
+            function update() {
+                var start = performance.now();
+                // console.profile('update');
+                forceAtlas2.update();
+                // console.profileEnd('update');
+                console.log(performance.now() - start);
+
+                setTimeout(update, 100);
+
+                drawDebug();
+            }
+
+            setTimeout(update, 100);
+
+            // Debug
+            function drawDebug() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                for (var i = 0; i < nNodes; i++) {
+                    var pos = forceAtlas2.nodes[i].position;
+
+                    ctx.beginPath();
+                    ctx.arc(pos[0], pos[1], 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                for (var i = 0; i < nEdges; i++) {
+                    var edge = forceAtlas2.edges[i];
+
+                    ctx.beginPath();
+                    ctx.moveTo(edge.source.position[0], edge.source.position[1])
+                    ctx.lineTo(edge.target.position[0], edge.target.position[1]);
+                    ctx.stroke();
+                }
+
+                function drawBBox (region) {
+                    var bbox = region.bbox;
+                    ctx.strokeRect(bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
+                    region.subRegions.forEach(drawBBox);
+                }
+                ctx.strokeStyle = 'rgba(255, 0, 0, 0.2)';
+                drawBBox(forceAtlas2.rootRegion);
+            }
+        </script>
+    </body>
+</html>

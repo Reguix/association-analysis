@@ -1,0 +1,18 @@
+<html>
+    <head>
+        <script type="text/javascript" src="../thirdparty/require.js"></script>
+        <script type="text/javascript" src="../thirdparty/zrender-original.js"></script>
+    </head>
+    <body style="margin:0px;">
+        <canvas id="main"></canvas>
+        <script type="text/javascript">
+            require(['../lib/gdf'], function(GDF) {
+                var gdf = new GDF();
+                gdf.load('../examples/facebook.gdf');
+                gdf.success(function(res) {
+                    console.log(res);
+                })
+            });
+        </script>
+    </body>
+</html>
