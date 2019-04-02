@@ -61,3 +61,4 @@ venv.bak/
 *.html
 test.json
 funcTest.py
+!requirements.txt
