@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nativehtml id="view">
+    <![CDATA[
+        <h2>视图</h2>
+        <div id="fps"></div>
+        <div id="viewport">
+    ]]>
+</nativehtml>

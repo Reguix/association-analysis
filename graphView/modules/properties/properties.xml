@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<panel id="properties" title="节点属性">
+    <container visible="@binding[visible]">
+        <inline class="item" visible="@binding[isSingleSelection]">
+            <label class="item-left">名称</label>
+            <textfield class="item-right" text="@binding[label]"></textfield>
+        </inline>
+        <inline class="item" visible="@binding[isSingleSelection]">
+            <label class="item-left">位置</label>
+            <vector class="item-right">
+                <spinner value="@binding[x]"></spinner>
+                <spinner value="@binding[y]"></spinner>
+            </vector>
+        </inline>
+        <inline class="item">
+            <label class="item-left">大小</label>
+            <spinner class="item-right" min="0" value="@binding[size]"></spinner>
+        </inline>
+        <inline class="item">
+            <label class="item-left">形状</label>
+            <combobox class="item-right" value="@binding[shape]">
+                <item value="circle">圆形</item>
+                <item value="star">星性</item>
+                <item value="heart">心形</item>
+                <item value="rectangle">矩形</item>
+                <item value="path">人头</item>
+            </combobox>
+        </inline>
+        <inline class="item">
+            <label class="item-left">
+                颜色
+            </label>
+            <color class="item-right" color="@binding[color]"></color>
+        </inline>
+        <inline class="item">
+            <button onclick="@binding[cancel]" class="item-right">取消</button>
+        </inline>
+    </container>
+</panel>

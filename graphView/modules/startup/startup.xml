@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nativehtml id="startup">
+    <![CDATA[
+        <h1>GEXF Viewer</h1>
+        <div class="open">
+            打开
+        </div>
+        <div class="examples">
+            <h3>
+                示例文件
+            </h3>
+            <ul>
+                <li data-file="examples/example.gexf">Les Miserables</li>
+                <li data-file="examples/WebAtlas_EuroSiS.gexf">WebAtlas_EuroSiS</li>
+                <li data-file="examples/arctic.gexf">arctic<br />(sigma.js)</li>
+                <li data-file="examples/internet.gexf">Internet<br />(large)</li>
+            </ul>
+        </div>
+
+        <div class="tip">
+            Tips: GEXF文件可以使用Gephi编辑和导出
+        </div>
+    ]]>
+</nativehtml>

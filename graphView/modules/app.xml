@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<application>
+    <vbox height="100%">
+        <container id="topbar" prefer="40">
+        </container>
+        <hbox>
+            <container id="main" flex="1" >
+            </container>
+            <tab visible="" id="sidebar" width="300" resizeHandles="l" resizeMinWidth="250" resizable="true">
+            </tab>
+        </hbox>
+    </vbox>
+</application>

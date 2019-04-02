@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<panel id="graph" title="全局">
+    <panel title="统计">
+        <inline class="item">
+            <label class="item-left">节点</label>
+            <label class="item-right" text="@binding[nodeCount]"></label>
+        </inline>
+        <inline class="item">
+            <label class="item-left">边</label>
+            <label class="item-right" text="@binding[edgeCount]"></label>
+        </inline>
+    </panel>
+    <panel title="绘制">
+        <inline class="item">
+            <label class="item-left">显示标签</label>
+            <checkbox class="item-right" checked="@binding[showLabel]"></checkbox>
+        </inline>
+        <inline class="item">
+            <label class="item-left">节点绘制</label>
+            <combobox class="item-right" value="@binding[brushType]">
+                <item value="fill">仅填充</item>
+                <item value="stroke">仅描边</item>
+                <item value="both">填充和描边</item>
+            </combobox>
+        </inline>
+
+        <inline class="item">
+            <label class="item-left">边混合叠加</label>
+            <checkbox class="item-right" checked="@binding[edgeAdditiveBlend]"></checkbox>
+        </inline>
+        <inline class="item">
+            <label class="item-left">边透明度</label>
+            <slider class="item-right" min="0" max="1" step="0.01" value="@binding[edgeOpacity]"></slider>
+        </inline>
+
+        <inline class="item">
+            <label class="item-left">节点统一颜色</label>
+            <checkbox class="item-right" checked="@binding[useDefaultNodeColor]"></checkbox>
+        </inline>
+        <inline class="item" visible="@binding[useDefaultNodeColor]">
+            <label class="item-left">节点颜色</label>
+            <color class="item-right" color="@binding[defaultNodeColor]"></color>
+        </inline>
+        
+        <inline class="item">
+            <label class="item-left">边统一颜色</label>
+            <checkbox class="item-right" checked="@binding[useDefaultEdgeColor]"></checkbox>
+        </inline>
+        <inline class="item" visible="@binding[useDefaultEdgeColor]">
+            <label class="item-left">边颜色</label>
+            <color class="item-right" color="@binding[defaultEdgeColor]"></color>
+        </inline>
+        
+    </panel>
+    <panel title="ForceAtlas2 布局" id="force-atlas">
+        <inline class="item">
+            <label class="item-left">自动设置</label>
+            <checkbox class="item-right" checked="@binding[forceAtlas2.autoSettings]"></checkbox>
+        </inline>
+        <inline class="item" visible="@binding[forceAtlas2.manualSettings]">
+            <label class="item-left">近似斥力(Barnes Hut)</label>
+            <checkbox class="item-right" checked="@binding[forceAtlas2.barnesHutOptimize]"></checkbox>
+        </inline>
+        <inline class="item" visible="@binding[forceAtlas2.manualSettings]">
+            <label class="item-left">近似系数(Theta)</label>
+            <spinner class="item-right" min="0.5" step="0.01" value="@binding[forceAtlas2.barnesHutTheta]"></spinner>
+        </inline>
+        <inline class="item">
+            <label class="item-left">防止重叠</label>
+            <checkbox class="item-right" checked="@binding[forceAtlas2.preventOverlap]"></checkbox>
+        </inline>
+        <inline class="item">
+            <label class="item-left">LinLog模式</label>
+            <checkbox class="item-right" checked="@binding[forceAtlas2.linLogMode]"></checkbox>
+        </inline>
+        <inline class="item" visible="@binding[forceAtlas2.manualSettings]">
+            <label class="item-left">强重力模式</label>>
+            <checkbox class="item-right" checked="@binding[forceAtlas2.strongGravityMode]"></checkbox>
+        </inline>
+        <inline class="item">
+            <label class="item-left">重力</label>
+            <spinner class="item-right" min="0" step="0.01" value="@binding[forceAtlas2.gravity]"></spinner>
+        </inline>
+        <inline class="item" visible="@binding[forceAtlas2.manualSettings]">
+            <label class="item-left">缩放</label>
+            <spinner class="item-right" min="0" step="0.1" value="@binding[forceAtlas2.scaling]"></spinner>
+        </inline>
+        <inline class="item" visible="@binding[forceAtlas2.manualSettings]">
+            <label class="item-left">边权重</label>
+            <spinner class="item-right" min="0" step="0.1" value="@binding[forceAtlas2.edgeWeightInfluence]"></spinner>
+        </inline>
+    </panel>
+</panel>

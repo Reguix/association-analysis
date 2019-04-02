@@ -1,0 +1,9 @@
+<inline height="100%" id="toolbar">    
+    <iconbutton icon="load" onclick="@binding[upload]"></iconbutton>
+    <iconbutton icon="export" onclick="@binding[toXML]"></iconbutton>
+    <meta class="divider"></meta>
+    <label>布局</label>
+    <iconbutton icon="play" onclick="@binding[toggleLayout]"></iconbutton>
+    <meta class="divider"></meta>
+    <label>Tip: 按住 shift 任意多选</label>
+</inline>
