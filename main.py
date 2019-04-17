@@ -34,19 +34,20 @@ import networkx as nx
 from multiprocessing import Pool
 from functools import partial
 
+from parser_table import parser_table
  
 # 生成海量模拟日志
 def genHugeLog(patternJsonFilePath, logFileDirPath, numOfLog):
     """
     模拟日志格式
     {
-        "os": "",
-        "time": "",
-        "pid": "",
-        "ppid" "",
-        "network": {
-            "local_ip": "",
-            "foreign_ip": ""
+        "os" : "",
+        "timestamp" : 0,
+        "pid" : 0,
+        "ppid" : 0,
+        "network" : {
+            "local_ip" : "",
+            "foreign_ip" : ""
         }
     }
     """
@@ -65,7 +66,7 @@ def genHugeLog(patternJsonFilePath, logFileDirPath, numOfLog):
         logDict = copy.deepcopy(pattern)
         # print(pattern)
         logDict["os"] = osTypeList[random.randint(0, len(osTypeList) - 1)]
-        logDict["time"] = random.randint(0, 5 * numOfLog)
+        logDict["timestamp"] = random.randint(0, 5 * numOfLog)
         logDict["ppid"] = random.randint(5000, 5000 + numOfLog / 20)
         logDict["pid"] = random.randint(logDict["ppid"], 7000 + numOfLog / 20)
         # while logDict["ppid"] >= logDict["pid"]:
@@ -83,21 +84,58 @@ def genHugeLog(patternJsonFilePath, logFileDirPath, numOfLog):
     
     logFilePath = os.path.join(logFileDirPath, str(uuid.uuid4()) + ".json")    
     with open(logFilePath, "w") as logFile:
-        json.dump(logDictList, logFile, sort_keys=False, indent=4, separators=(',', ':'))
+        json.dump(logDictList, logFile, sort_keys=False, indent=4, separators=(",", " : "))
 
+
+
+def isMerge(logDictA, logDictB, associationDict):
+    # 完全相同
+#    logStrA = json.dumps(logDictA)
+#    logStrB = json.dumps(logDictB)
+#    if logStrA == logStrB:
+#        return True
+    
+#    # top字段完全相同且extra字段不冲突
+#    topKeyList = associationDict["topKeyList"]
+#    for topKey in topKeyList:
+#        # top字段每条日志都要有，没有就默认值，实在没有，就在这里加判断
+#        # if topKey in logDictA.keys() and topKey in logDictB.keys():
+#            jsonStrA = json.dumps(logDictA[topKey])
+#            jsonStrB = json.dumps(logDictB[topKey])
+#            if jsonStrA != jsonStrB:
+#                return False
+#    extraKeyList = associationDict["extraKeyList"]
+#    for extraKey in extraKeyList:
+#        if extraKey in logDictA.keys() and extraKey in logDictB.keys():
+#            jsonStrA = json.dumps(logDictA[topKey])
+#            jsonStrB = json.dumps(logDictB[topKey])
+#            if jsonStrA != jsonStrB:
+#                return False
+    
+    keySet = set(logDictA.keys()).union(set(logDictB.keys()))
+    for key in keySet:
+        if key in logDictA.keys() and key in logDictB.keys():
+            jsonStrA = json.dumps(logDictA[key])
+            jsonStrB = json.dumps(logDictB[key])
+            if jsonStrA != jsonStrB:
+                return False
+    return True
             
 # 定义关联规则（基于规则的关联分析）
-def isConnect(logDictA, logDictB):
+def isConnect(logDictA, logDictB, associationDict):
     """
     定义关联规则，互斥的字段直接判断无连接，然后递归遍历判断相等字段
     之后可以定义更复杂的规则，只有当两条日志间的关联程度足够强才连接两个节点
     """
     # 互斥字段（顶层字段，所有日志都必须填充的字段）
-    mutexKeyList = ["os"]
+    mutexKeyList = associationDict["mutexKeyList"]
     # 直接相等字段（最底层的键）
-    equalKeyList = ["time","pid", "ppid", "local_ip","foreign_ip"]
+    equalKeyList = associationDict["equalKeyList"]
     # 交叉相等字段
-    crossEqualTupleList = [("ppid", "pid")]
+    crossEqualTupleList = associationDict["crossEqualTupleList"]
+    # 默认值字典  
+    defaultValueDict = associationDict["defaultValueDict"]
+    
     
     # TODO: 这里添加更多复杂关联
     
@@ -110,12 +148,12 @@ def isConnect(logDictA, logDictB):
     for key in logDictA.keys():
         # 处理嵌套的字典
         if isinstance(logDictA[key], dict) and key in logDictB.keys():
-            if(isConnect(logDictA[key], logDictB[key])):
+            if(isConnect(logDictA[key], logDictB[key], associationDict)):
                 return True
         elif key in equalKeyList:
             # 处理直接相等字段
             if key in logDictA.keys() and key in logDictB.keys():
-                if logDictA[key] == logDictB[key] and logDictA[key] != "":
+                if logDictA[key] == logDictB[key] and logDictA[key] != defaultValueDict[key]:
                     return True
         else:
             # 处理交叉相等字段
@@ -123,13 +161,13 @@ def isConnect(logDictA, logDictB):
                 if key in tupleItem:
                     for item in tupleItem:
                         if item in logDictB.keys() and item != key:
-                            if logDictA[key] == logDictB[item] and logDictA[key] != "":
+                            if logDictA[key] == logDictB[item] and logDictA[key] != defaultValueDict[key]:
                                 return True
     return False
 
  
 # 生成日志图
-def genLogGraphFromLogDir(logFileDirPath):
+def genLogGraphFromLogDir(logFileDirPath, associationDict):
     
     print("初始化日志图信息")
 
@@ -152,12 +190,36 @@ def genLogGraphFromLogDir(logFileDirPath):
                         graph.nodes[logLabel]["viz"] = defaultColor
                         graph.nodes[logLabel]["logStr"] = logStr
     
-    for i, nodeA in enumerate(list(graph.nodes)):
-        for nodeB in list(graph.nodes)[(i + 1):]:
+    nodeList = copy.deepcopy(list(graph.nodes))
+    for i, nodeA in enumerate(nodeList):
+        if nodeA not in list(graph.nodes):
+            continue
+        
+        for nodeB in nodeList[(i + 1):]:
+            if nodeB not in list(graph.nodes):
+                continue
+            
             # print("A: %s, B: %s" % (graph.nodes[nodeA], graph.nodes[nodeB]))
             logDictA = json.loads(graph.nodes[nodeA]["logStr"])
             logDictB = json.loads(graph.nodes[nodeB]["logStr"])
-            if(isConnect(logDictA, logDictB)):
+            
+            if(isMerge(logDictA, logDictB, associationDict)):
+                keySet = set(logDictA.keys()).union(set(logDictB.keys()))
+                print("A: %s, B: %s" % (graph.nodes[nodeA], graph.nodes[nodeB]))
+                # 把节点B的属性合并到节点A中
+                for key in keySet:
+                    if key not in logDictA.keys():
+                        logDictA[key] = logDictB[key]
+                # 更新节点A的属性
+                graph.nodes[nodeA]["logStr"] = json.dumps(logDictA)
+                # 把节点B的连接的边，连接到节点A上，避免自环
+                for nodeAdj in list(graph.adj[nodeB]):
+                    if nodeAdj != nodeA:
+                        graph.add_edge(nodeAdj, nodeA)
+                # 在图中删除节点B
+                graph.remove_node(nodeB)
+                
+            elif(isConnect(logDictA, logDictB, associationDict)):
                 graph.add_edge(nodeA, nodeB)
     nx.write_gexf(graph, graphGexfFilePath)
     
@@ -188,11 +250,16 @@ def connectedFilter(graph, limit=10):
     
     # 生成日志图事件概述(基于统计的关联分析)
     print("事件中日志条目统计结果: ")
-    describe(wccsgLenList)
+    autoLimit = describe(wccsgLenList)
     
     print("事件中日志条目统计图表: ")
     print('<img src="./statistics.jpg" alt="事件中日志条目统计" />')
     histAndBoxPlot(wccsgLenList, "事件中包含的日志条目", "statistics.jpg")
+    
+    print("系统统计计算推荐的事件大小过滤值: %d" % int(autoLimit))
+    print("选项--limit指定的事件大小过滤值: %d" % int(limit))
+    limit = max(limit, autoLimit)
+    print("最终确定的过滤值为（包含日志条目小于此值的事件会被过滤掉）: %d" % limit)
     
     # 过滤掉包含日志较少的事件（可以定义更复杂的筛选）
     remainList = [graph for graph in wccsgList if len(graph) > limit]
@@ -216,7 +283,7 @@ def connectedFilter(graph, limit=10):
     nx.write_gexf(connectedFilterGraph, "connectedFilterGraph.gexf")
     print("初步过滤信息 ")
     print("日志图包含节点数（日志条目数）: %s" % connectedFilterGraph.number_of_nodes())
-    print("日志图包含边数: %s" % connectedFilterGraph.number_of_nodes())
+    print("日志图包含边数: %s" % connectedFilterGraph.number_of_edges())
     print("日志规模下降为原来的: %.2f%%!" % (connectedFilterGraph.number_of_nodes() / graph.number_of_nodes() * 100))
     
     print("连通性过滤后的日志静态图: ")
@@ -397,7 +464,7 @@ def convertToIgraph():
 
 
 def histAndBoxPlot(dataList, dataLabel, figFilePath):
-    plt.rcParams['font.sans-serif']=['SimHei']
+    plt.rcParams["font.sans-serif"]=["SimHei"]
     data = np.array(dataList)
     fig = plt.figure(figsize =(9,5))
     
@@ -422,6 +489,8 @@ def histAndBoxPlot(dataList, dataLabel, figFilePath):
     plt.savefig(figFilePath)
     # plt.show()
 
+
+# 
 def describe(dataList,labels=""):
     pd.set_option('precision', 0)
     pd.set_option('display.unicode.ambiguous_as_wide', True)
@@ -434,11 +503,18 @@ def describe(dataList,labels=""):
     # statisticsDataFrame = dataFrame.describe()
     # statisticsDataFrame.columns = labels
     s = pd.Series(dataList)
-    statisticsSeries = s.describe()
+    # ss means statisticsSeries
+    ss = s.describe()
     # statisticsDataFrame.round(2)
     index = ["参与统计: ","平均值: ","标准差: ","最小值: ","25%: ","50%: ","75%: ","最大值: "]
-    statisticsDataFrame= pd.Series(statisticsSeries.values, index=index)
+    statisticsDataFrame= pd.Series(ss.values, index=index)
     print(statisticsDataFrame)
+    if ss["min"] != ss["max"]:
+        limit = (ss["min"] + ss["max"] / ss["mean"] * ss["min"] / ss["75%"])
+    else:
+        limit = 0
+    limit = min(ss["mean"], limit)
+    return limit
 
 
 def parserTxtToHtml():
@@ -446,6 +522,8 @@ def parserTxtToHtml():
                 "<h1>关联分析报告</h1>")
     htmlTail = ("</body></html>")
     with open("report.html", "w", encoding="utf-8") as htmlFile:
+        # htmlFile.seek(0)
+        # htmlFile.truncate()
         htmlFile.write(htmlHead)
         txtFile = open("report.txt", "r", encoding="utf-8")
         lines = txtFile.readlines()
@@ -471,7 +549,10 @@ def parserHtmlToPdf():
 class Logger(object):
     def __init__(self, filename="report.txt"):
         self.terminal = sys.stdout
-        self.log = open(filename, "a", encoding="utf-8")
+        reStdout = open(filename, "a", encoding="utf-8")
+        reStdout.seek(0)
+        reStdout.truncate()
+        self.log = reStdout
  
     def write(self, message):
         self.terminal.write(message)
@@ -502,22 +583,28 @@ def notBool(b):
     return bool(1-b)
 
 # 主函数
-def main(pattern, log_dir, num_log, limit):
+def main(pattern, log_dir, config, num_log, limit):
     
     # 清理当前目录，新建event目录保存分析结果 
     # ignoreFileList = ["main.py","funcTest.py", "graphView", "test.json", pattern, "log"]
-    cleanDir("./event", toTrash=False)
+    ignoreFileList = [".gitignore"]
+    cleanDir("./event", ignoreFileList, toTrash=False)
+    os.unlink("report.txt")
     # os.mkdir("event") 
+    
     
     # 重定向输出
     sys.stdout = Logger()
     
     #清理上次生成的模拟日志，并生成新的模拟日志
-    cleanDir(log_dir,toTrash=False)
+    cleanDir(log_dir, ignoreFileList, toTrash=False)
     genHugeLog(pattern, log_dir, num_log)
     
+    # 解析关联关系配置文件
+    associationDict = parser_table(config)
+    
     # 生成日志图
-    graph = genLogGraphFromLogDir(log_dir)
+    graph = genLogGraphFromLogDir(log_dir, associationDict)
     
     # 联通性分析
     connectedGraph, subgraphList = connectedFilter(graph, limit)
@@ -528,25 +615,27 @@ def main(pattern, log_dir, num_log, limit):
     # 溯源分析示例（进程树）
     print("回溯分析示例")
     print("以父子进程(ppid, pid)为例进行回溯分析: ")
-    eventGraph = nx.read_gexf("./event/event0_0.gexf")
+    if os.path.exists("./event/event0_0.gexf"):
+        eventGraph = nx.read_gexf("./event/event0_0.gexf")
+    else:
+        eventGraph = nx.read_gexf("./event/event0.gexf")
     backtrace(("ppid", "pid"), eventGraph)
     
     # 序列性分析示例（时间序列）
     print("序列性数据分析示例")
-    print("以时间（time）为例进行序列性分析:")
-    eventGraph = nx.read_gexf("./event/event0_0.gexf")
-    seriesAnalysis("time", eventGraph)
+    print("以时间戳（timestamp）为例进行序列性分析:")
+    # eventGraph = nx.read_gexf("./event/event0_0.gexf")
+    seriesAnalysis("timestamp", eventGraph)
     
     # 生成html和pdf报告
     report()
     
-    # sys.stdout.close()
-
        
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
     argparser.add_argument("--pattern", type=str, default="pattern.json")
     argparser.add_argument("--log_dir", type=str, default="./log")
+    argparser.add_argument("--config", type=str, default="association_table.md")
     argparser.add_argument("--num_log", type=int, default=2000)
     argparser.add_argument("--limit", type=int, default=10)
     args = argparser.parse_args()

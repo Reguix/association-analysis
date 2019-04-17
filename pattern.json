@@ -1,10 +1,10 @@
 {
-    "os": "",
-    "time": "",
-    "pid": "",
-    "ppid":"",
-    "network": {
-        "local_ip": "",
-        "foreign_ip": ""
+    "os" : "",
+    "timestamp" : 0,
+    "pid" : 0,
+    "ppid" : 0,
+    "network" : {
+        "local_ip" : "",
+        "foreign_ip" : ""
     }
 }
